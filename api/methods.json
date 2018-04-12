@@ -1,0 +1,129 @@
+{
+	"register": {
+		"methods": ["POST"],
+		"POST": {
+			"mandatory": ["email", "username", "password"],
+			"optional": ["avatar_id", "display_name"]
+		}
+	},
+	"generateToken": {
+		"methods": ["POST"],
+		"POST": {
+			"mandatory": ["username", "password"]
+		}
+	},
+	"createPuddle": {
+		"methods": ["POST"],
+		"POST": {
+			"mandatory": ["token", "users"],
+			"optional": ["display_name", "avatar_id"]
+		}
+	},
+	"deletePuddle": {
+		"methods": ["POST"],
+		"POST": {
+			"mandatory": ["token", "puddle_id"],
+			"optional": ["reason"]
+		}
+	},
+	"editPuddle": {
+		"methods": ["POST"],
+		"POST": {
+			"mandatory": ["token", "puddle_id", "display_name", "avatar_id"]
+		}
+	},
+	"addUsersToPuddle": {
+		"methods": ["POST"],
+		"POST": {
+			"mandatory": ["token", "puddle_id", "users"]
+		}
+	},
+	"removeUsersFromPuddle": {
+		"methods": ["POST"],
+		"POST": {
+			"mandatory": ["token", "puddle_id", "users"]
+		}
+	},
+	"getPuddle": {
+		"methods": ["GET"],
+		"GET": {
+			"mandatory": ["token", "puddle_id"]
+		}
+	},
+	"getPuddles": {
+		"methods": ["GET"],
+		"GET": {
+			"mandatory": ["token"],
+			"optional": ["count", "offset", "reversed"]
+		}
+	},
+	"getPuddleMessages": {
+		"methods": ["GET"],
+		"GET": {
+			"mandatory": ["token", "puddle_id"],
+			"optional": ["count", "offset", "reversed"]
+		}
+	},
+	"sendMessage": {
+		"methods": ["POST"],
+		"POST": {
+			"mandatory": ["token", "puddle_id"],
+			"optional": ["forwarded", "files", "text"]
+		}
+	},
+	"editMessage": {
+		"methods": ["POST"],
+		"POST": {
+			"mandatory": ["token", "id", "text"]
+		}
+	},
+	"deleteMessage": {
+		"methods": ["POST"],
+		"POST": {
+			"mandatory": ["token", "id"],
+			"optional": ["reason"]
+		}
+	},
+	"getUnreaded": {
+		"methods": ["GET"],
+		"GET": {
+			"mandatory": ["token"]
+		}
+	},
+	"getProfile": {
+		"methods": ["GET"],
+		"GET": {
+			"mandatory": ["token", "username"]
+		}
+	},
+	"setPassword": {
+		"methods": ["POST"],
+		"POST": {
+			"mandatory": ["token", "old_password", "password"]
+		}
+	},
+	"uploadFile": {
+		"methods": ["POST"],
+		"POST": {
+			"mandatory": ["token", "file"]
+		}
+	},
+	"downloadFile": {
+		"methods": ["GET"],
+		"GET": {
+			"mandatory": ["token", "id"]
+		}
+	},
+	"addFriend": {
+		"methods": ["POST"],
+		"POST": {
+			"mandatory": ["token", "username"]
+		}
+	},
+	"removeFriend": {
+		"methods": ["POST"],
+		"POST": {
+			"mandatory": ["token", "username"]
+		}
+	}
+}
