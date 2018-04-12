@@ -10,7 +10,7 @@ Django Web Messenger
 * Run `install.bat`, it contains a few instalations throught `venv\Scripts\pip.exe` (Yea I know about setuptools. I will fix it)
 * Install [Redis](https://redis.io)
 * Base config in `Mess\settings.py` using default redis port - `6379`
-* Run `setup.bat`. It make migrations, apply it then run `manage.py createsuperuser` and must input username/email/password
+* Run `setup.bat`. It make migrations, apply it then `setup.bat` run `manage.py createsuperuser` and you must input username/email/password
 * Default DB - default sqlite3
 * Enter `SECRET_KEY` in `Mess\settings.py`
 * #### Now you can run it!
