@@ -1,154 +1,113 @@
 from . import json
-from . import JsonResponse, csrf_exempt, timezone
-from . import Token, File, Message, Puddle, websocket_socket_notify, redis_server
+from . import csrf_exempt, timezone, redis_server, websocket_socket_notify
+from . import Profile, ProfileSerializer, Puddle, PuddleSerializer, Message, File, MessageSerializer, BadJsonResponse, GoodJsonResponse
 
 @csrf_exempt
 def send_message(request):
-	params = json.loads(request.body.decode("utf-8"))
+	profile = request.META["profile"]
+
+	text = request.META["params"]["text"]
+	puddle_id = request.META["params"]["puddle_id"]
+	files = request.META["params"]["files"]
+	forwarded = request.META["params"]["forwarded"]
+
+	if not (text or files or forwarded):
+		return BadJsonResponse("Message must contain text or/and files or/and forwarded")
 
 	try:
-		profile = Token.objects.get(token=params["token"]).profile
-	except Token.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "Wrong token"})
-	else:
-		profile.last_activity = timezone.now()
-		profile.save()
-
-	try:
-		puddle = profile.puddles.all().get(id=params["puddle_id"])
+		puddle = profile.puddles.all().get(id=puddle_id)
 	except Puddle.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "You have not puddle with such id"})
+		return BadJsonResponse("You haven't puddle with such id")
 
-	files = []
-	for file_id in params.get("files", []):
+	message = Message.objects.create(
+		sender=profile,
+		target_puddle=puddle,
+		text=text,
+		)
+
+	message.readed_by = f"{profile.id} "
+	message.save()
+
+	puddle.messages.add(message)
+
+	for fmessage_id in forwarded:
+		try:
+			fmessage = Message.objects.get(id=fmessage_id)
+		except Message.DoesNotExist:
+			return BadJsonResponse(f"No message with such id ({fmessage_id})")
+		message.forwarded.add(fmessage)
+
+	for file_id in files:
 		try:
 			file = File.objects.get(id=file_id)
 		except File.DoesNotExist:
-			return JsonResponse({"ok": False, "error": "No file with such id"})
-		else:
-			if file.owner_profile.id != profile.id:
-				return JsonResponse({"ok": False, "error": "No file with such id uploaded by you"})
-		files.append(file)
+			return BadJsonResponse(f"No file with such id ({file_id})")
+		message.files.add(file)
 
-	fmessages = []
-	for message_id in params.get("forwarded", []):
-		try:
-			fmessage = Message.objects.get(id=message_id)
-		except Message.DoesNotExist:
-			return JsonResponse({"ok": False, "error": "No message with such id"})
-
-		try:
-			profile.puddles.all().get(id=fmessage.target_puddle.id)
-		except puddle.DoesNotExist:
-			return JsonResponse({"ok": False, "error": "You don't know message with such id"})
-		fmessages.append(fmessage)
-
-	if not (params.get("text", "") or files or fmessages):
-		return JsonResponse({"ok": False, "error": "New message must have text, file or forwarded message"})
-
-	new_message = Message(
-		profile=profile,
-		target_puddle=puddle,
-		text=params.get("text", ""))
-
-	new_message.save()
-
-	new_message.files.set(files)
-	new_message.forwarded_messages.set(fmessages)
-	new_message.readed_by.add(profile)
-
-	for member in new_message.target_puddle.members.all():
+	for user in puddle.users.all():
 		websocket_socket_notify(
-			redis_server.get(member.user.id),
-			new_message,
+			redis_server.get(user.id),
+			"Message",
 			"new",
-			{"message": new_message.as_json()})
+			{"message": MessageSerializer(message).data})
 
-	return JsonResponse({"ok": True, "message": new_message.as_json()})
+	return GoodJsonResponse(MessageSerializer(message))
 
 @csrf_exempt
 def edit_message(request):
-	params = json.loads(request.body.decode("utf-8"))
+	profile = request.META["profile"]
+
+	puddle_id = request.META["params"]["puddle_id"]
+	message_id = request.META["params"]["message_id"]
+	text = request.META["params"]["text"]
 
 	try:
-		profile = Token.objects.get(token=params["token"]).profile
-	except Token.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "Wrong token"})
-	else:
-		profile.last_activity = timezone.now()
-		profile.save()
-
-	try:
-		message = Message.objects.get(id=params["id"])
-	except Message.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "No message with such id"})
-
-	try:
-		profile.puddles.all().get(id=message.target_puddle.id)
+		puddle = profile.puddles.all().get(id=puddle_id)
 	except Puddle.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "You don't know message with such id"})
+		return BadJsonResponse("You haven't puddle with such id")
 
-	if message.profile != profile:
-		return JsonResponse({"ok": False, "error": "You can't edit non-yours message"})
+	try:
+		message = puddle.messages.all().get(id=message_id)
+	except Message.DoesNotExist:
+		return BadJsonResponse("You haven't message with such id")
+
+	if message.sender != profile:
+		return BadJsonResponse("You can't edit other's message")
 
 	if (timezone.now() - message.timestamp).days:
-		return JsonResponse({"ok": False, "error": "Too late for editing"})
+		return BadJsonResponse("Too late for editing")
 	
-	message.text = params["text"]
+	message.text = text
 	message.edited = True
 
 	message.save()
 
-	for member in message.target_puddle.members.all():
+	for user in puddle.users.all():
 		websocket_socket_notify(
-			redis_server.get(member.user.id),
-			message,
+			redis_server.get(user.id),
+			"Message",
 			"edit",
-			{"message": message.as_json()})
+			{"message": MessageSerializer(message).data})
 
-	return JsonResponse({"ok": True, "message": message.as_json()})
+	return GoodJsonResponse(MessageSerializer(message))
 
 @csrf_exempt
 def delete_message(request):
-	params = json.loads(request.body.decode("utf-8"))
+	profile = request.META["profile"]
+
+	puddle_id = request.META["params"]["puddle_id"]
+	message_id = request.META["params"]["message_id"]
 
 	try:
-		profile = Token.objects.get(token=params["token"]).profile
-	except Token.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "Wrong token"})
-	else:
-		profile.last_activity = timezone.now()
-		profile.save()
+		puddle = profile.puddles.all().get(id=puddle_id)
+	except Puddle.DoesNotExist:
+		return BadJsonResponse("You haven't puddle with such id")
 
 	try:
-		message = Message.objects.get(id=params["id"])
+		message = puddle.messages.all().get(id=message_id)
 	except Message.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "No message with such id"})
-	
-	message.not_show_for.add(profile)
+		return BadJsonResponse("You haven't message with such id")
 
-	for member in message.target_puddle.members.all():
-		websocket_socket_notify(
-			redis_server.get(member.user.id),
-			message,
-			"delete",
-			{"message": message.as_json()})
+	message.hidden_from.add(profile)
 
-	return JsonResponse({"ok": True})
-
-def get_unreaded(request):
-	params = request.GET
-
-	try:
-		profile = Token.objects.get(token=params["token"]).profile
-	except Token.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "Wrong token"})
-	else:
-		profile.last_activity = timezone.now()
-		profile.save()
-
-	messages = [msg.as_json() for msg in profile.unreaded_messages]
-	if len(messages) > 50:
-		messages = messages[:50]
-
-	return JsonResponse({"ok": True, "messages": messages})
+	return GoodJsonResponse()

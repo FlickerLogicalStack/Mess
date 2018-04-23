@@ -1,12 +1,13 @@
-from django.conf import settings
-from django.utils import timezone
-from django.http import JsonResponse
-
+import os.path
 import json
 
-from .utils import base_validation, check_request_params
+from django.conf import settings
+from django.apps import apps
+from django.http import JsonResponse
+from django.utils import timezone
 
-import os.path
+from .utils import base_validation, check_request_params, profile_from_token
+from .models import Token
 
 class ApiRequestValidatorMiddleware:
 	def __init__(self, get_response):
@@ -55,6 +56,17 @@ class ApiRequestValidatorMiddleware:
 			method_config.get(request.method, {}).get("optional", []))
 		if not ok:
 			return JsonResponse({"ok":False, "error": error})
+		else:
+			request.META["params"] = params
+
+		# FIND PROFILE BY TOKEN IF IT NEED
+		if method_config.get("require_token", False):
+			profile = profile_from_token(params["token"])
+			if profile is None:
+				return JsonResponse({"ok": False, "error": "Wrong token: " + params["token"]})
+			request.META["profile"] = profile
+			profile.last_activity = timezone.now()
+			profile.save()
 
 		response = self.get_response(request)
 

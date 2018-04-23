@@ -1,5 +1,5 @@
-"venv\Scripts\python" "manage.py" makemigrations
-"venv\Scripts\python" "manage.py" migrate
-"venv\Scripts\python" "manage.py" migrate --run-syncdb
+"env\Scripts\python" "manage.py" makemigrations
+"env\Scripts\python" "manage.py" migrate
+"env\Scripts\python" "manage.py" migrate --run-syncdb
 
-"venv\Scripts\python.exe" "manage.py" createsuperuser --username admin --email example@email.com
+"env\Scripts\python.exe" "manage.py" createsuperuser --username admin --email example@email.com

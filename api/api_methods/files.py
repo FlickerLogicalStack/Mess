@@ -1,41 +1,32 @@
-from . import csrf_exempt, HttpResponse, JsonResponse, timezone
-from . import File, Token
+from . import hashlib
+from . import csrf_exempt, HttpResponse
+from . import File, FileSerializer, BadJsonResponse, GoodJsonResponse
 
 @csrf_exempt
 def upload_file(request):
-	params = request.POST
+	profile = request.META["profile"]
 
-	try:
-		profile = Token.objects.get(token=params["token"]).profile
-	except Token.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "Wrong token"})
-	else:
-		profile.last_activity = timezone.now()
-		profile.save()
-
-	new_file = File(
-		owner_profile=profile,
+	file = File.objects.create(
+		owner=profile,
 		file=request.FILES["file"])
-	new_file.save()
 
-	return JsonResponse({"ok": True, "file": new_file.as_json()})
+	# print(hashlib.md5(file.file.read()).hexdigest())
 
+	return GoodJsonResponse(FileSerializer(file))
+
+@csrf_exempt
 def download_file(request):
-	params = request.GET
+	profile = request.META["profile"]
+	file_id = request.META["params"]["file_id"]
 
 	try:
-		profile = Token.objects.get(token=params["token"]).profile
-	except Token.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "Wrong token"})
-	else:
-		profile.last_activity = timezone.now()
-		profile.save()
-
-	try:
-		file = File.objects.get(id=params["id"])
+		file = File.objects.get(id=file_id)
 	except File.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "No file with such id"})
-	else:
-		response = HttpResponse(file.file.file.read(), content_type=file.mime)
-		response['Content-Disposition'] = 'inline; filename=' + file.file.name
-		return response
+		return BadJsonResponse("No file with such id")
+
+	if file.owner != profile:
+		return BadJsonResponse("You can download only self uploaded files by id")
+
+	response = HttpResponse(file.file.file.read(), content_type=file.mime)
+	response['Content-Disposition'] = 'inline; filename=' + file.file.name
+	return response

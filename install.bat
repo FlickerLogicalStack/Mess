@@ -1,10 +1,13 @@
-python -m venv venv
-"venv\Scripts\pip" pypiwin32
-"venv\Scripts\python" "venv\Scripts\pywin32_postinstall.py" -install
-"venv\Scripts\easy_install" msgpack
-"venv\Scripts\easy_install" channels
-"venv\Scripts\easy_install" channels_redis
-"venv\Scripts\easy_install" redis
-"venv\Scripts\easy_install" fleep
+python -m venv env
+"env\Scripts\pip" install pypiwin32
+"env\Scripts\python" "env\Scripts\pywin32_postinstall.py" -install
+"env\Scripts\easy_install" djangorestframework
+"env\Scripts\easy_install" markdown
+"env\Scripts\easy_install" django-filter
+"env\Scripts\easy_install" msgpack
+"env\Scripts\easy_install" channels
+"env\Scripts\easy_install" channels_redis
+"env\Scripts\easy_install" redis
+"env\Scripts\easy_install" fleep
 
-"venv\Scripts\pip" install -r requirements.txt
+"env\Scripts\pip" install -r requirements.txt

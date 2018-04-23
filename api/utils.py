@@ -22,8 +22,9 @@ def check_request_params(params, mandatory, optional):
 	return (True, None)
 
 def profile_from_token(token):
-	profiles_by_token = Token.objects.filter(token=token).filter()
-
-	if profiles_by_token.count():
-		return profiles_by_token.filter()[0:1].get().profile
-	return None
+	try:
+		profile = Token.objects.get(token=token)
+	except (Token.DoesNotExist, Token.MultipleObjectsReturned):
+		return
+	else:
+		return profile.profile

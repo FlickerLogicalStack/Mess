@@ -1,227 +1,208 @@
-from . import os, json, hashlib
-from . import csrf_exempt, authenticate, JsonResponse, timezone
-from . import User, Profile, File, Token, Puddle
+import time
 
-def get_puddle_messages(request):
-	params = request.GET
+from . import csrf_exempt, redis_server, websocket_socket_notify
+from . import File, Profile, Puddle, PuddleSerializer, MessageSerializer, BadJsonResponse, GoodJsonResponse
 
-	try:
-		profile = Token.objects.get(token=params["token"]).profile
-	except Token.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "Wrong token"})
-	else:
-		profile.last_activity = timezone.now()
-		profile.save()
-
-	puddle_id = params.get("puddle_id")
-	offset = int(params.get("offset", 0))
-	count = int(params.get("count", 25))
-	reversed_ = int(params.get("reversed", 0))
-
-	try:
-		puddle = profile.puddles.get(id=puddle_id)
-	except Puddle.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "You have not puddle with such id"})
-
-	messages = []
-	for message in puddle.messages.all().order_by("-timestamp" if not reversed_ else "timestamp")[offset:offset+count]:
-		if profile.user.username not in [i.user.username for i in message.not_show_for.all()]:
-			messages.append(message.as_json())
-
-	return JsonResponse({"ok": True, "messages": messages})
+def puddle_notify(profile, type, data):
+	websocket_socket_notify(
+		redis_server.get(profile.id),
+		"Puddle",
+		type,
+		data)
 
 def get_puddle(request):
-	params = request.GET
+	profile = request.META["profile"]
 
 	try:
-		profile = Token.objects.get(token=params["token"]).profile
-	except Token.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "Wrong token"})
-	else:
-		profile.last_activity = timezone.now()
-		profile.save()
-
-	try:
-		puddle = profile.puddles.get(id=params["puddle_id"])
+		puddle = profile.puddles.all().get(id=request.META["params"]["puddle_id"])
 	except Puddle.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "You have not puddle with such id"})
+		return BadJsonResponse("No puddle with such id")
 
-	return JsonResponse({"ok": True, "puddle": puddle.as_json()})
+	serializer = PuddleSerializer(puddle)
+
+	extra_per_object = [{"unreaded_count": puddle.unreaded_count_by(profile)}]
+
+	return GoodJsonResponse(serializer, extra_per_object=extra_per_object)
 
 def get_puddles(request):
-	params = request.GET
-	
-	try:
-		profile = Token.objects.get(token=params["token"]).profile
-	except Token.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "Wrong token"})
+	profile = request.META["profile"]
+	count = int(request.META["params"].get("count", 50))
+	offset = int(request.META["params"].get("offset", 0))
+	reversed_ = int(request.META["params"].get("reversed", 0))
+
+	all_puddles = profile.puddles.all()
+
+	all_puddles = sorted(all_puddles,
+		key=lambda puddle: time.mktime(puddle.last_message.timestamp.timetuple()) if puddle.last_message else puddle.id)
+
+	if reversed_:
+		all_puddles = list(reversed(all_puddles))
+
+	puddles_count = len(all_puddles)
+	if offset > puddles_count:
+		puddles = []
 	else:
-		profile.last_activity = timezone.now()
-		profile.save()
+		puddles = all_puddles[offset:(offset+count)-(puddles_count-(offset+count-1))]
 
-	count = int(params.get("count", 25))
-	offset = int(params.get("offset", 0))
-	reversed_ = int(params.get("reversed_", 0))
+	serializer = PuddleSerializer(puddles, many=True)
 
-	puddles = []
-	for puddle in profile.puddles.all()[offset:offset+count]:
-		if profile.user.username not in [i.user.username for i in puddle.not_show_for.all()]:
-			puddles.append(puddle.as_json())
-	
-	return JsonResponse({"ok": True, "puddles": puddles})
+	extra_per_object = [{"unreaded_count": p.unreaded_count_by(profile)} for p in puddles]
+
+	return GoodJsonResponse(serializer, extra={"next": offset+count}, extra_per_object=extra_per_object)
+
+def get_puddle_messages(request):
+	profile = request.META["profile"]
+	count = int(request.META["params"].get("count", 50))
+	offset = int(request.META["params"].get("offset", 0))
+	reversed_ = int(request.META["params"].get("reversed", 0))
+
+	try:
+		puddle = profile.puddles.all().get(id=request.META["params"]["puddle_id"])
+	except Puddle.DoesNotExist:
+		return BadJsonResponse("No puddle with such id")
+
+	all_messages = puddle.messages.all().exclude(
+		hidden_from__in=[profile.id]).order_by("timestamp" if reversed_ else "-timestamp")[offset:count+offset]
+
+	serializer = MessageSerializer(all_messages, many=True)
+
+	# DON'T LOOK AT NEXT LINE
+	extra_per_object = [{"readed": puddle.messages.all().filter(id=msg.id).filter(readed_by__regex=f"(?:\\A| ){profile.id}(?: |\\Z)").exists()} for msg in all_messages]
+	# THANKS
+
+	return GoodJsonResponse(serializer, extra={"next": offset+count}, extra_per_object=extra_per_object)
 
 @csrf_exempt
 def create_puddle(request):
-	params = json.loads(request.body.decode("utf-8"))
+	profile = request.META["profile"]
+	users = request.META["params"]["users"]
+	title = request.META["params"].get("title", None)
+	avatar_id = request.META["params"].get("avatar_id", None)
 
-	params["users"] = list(set(params["users"]))
+	if not len([i for i in users if i != profile.user.username]):
+		return BadJsonResponse("Puddle must have at least 1 other user")
 
-	if not len(set(params["users"])):
-		return JsonResponse({"ok": False, "error": "Puddle must have at least 1 other user"})
-
-	try:
-		profile = Token.objects.get(token=params["token"]).profile
-	except Token.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "Wrong token"})
-	else:
-		profile.last_activity = timezone.now()
-		profile.save()
-
-	users = profile.friends.filter(user__username__in=params["users"])
-
-	if profile.mutually_friends.intersection(users).filter(id__in=users).count() != len(params["users"]):
-		return JsonResponse({"ok": False, "error": "You can't invire non-friend users"})
+	users_ = profile.friends.filter(user__username__in=users)
+	if profile.friends.intersection(users_).filter(user__username__in=users).count() != len(users):
+		return BadJsonResponse("You can't invite non-friend users")
 
 	new_puddle = Puddle.objects.create(
 		creator=profile,
-		display_name=params.get("display_name", ""))
+		title=title or "")
 
-	new_puddle.members.set(users)
-	new_puddle.members.add(profile)
+	new_puddle.users.set(profile.friends.filter(user__username__in=users))
+	new_puddle.users.add(profile)
 
-	if params.get("avatar_id") is not None:
+	if avatar_id is not None:
 		try:
-			avatar = File.objects.get(id=params["avatar_id"])
+			new_puddle.avatar = File.objects.get(id=avatar_id)
 		except File.DoesNotExist:
-			return JsonResponse({"ok": False, "error": "No file with such id for avatar"})
+			pass
 
-		if avatar.is_avatarable:
-			new_puddle.avatar = avatar
-		else:
-			return JsonResponse({"ok": False, "error": "File with such id not avatarable"})
+	for user in new_puddle.users.all():
+		puddle_notify(user, "create", {"puddle": PuddleSerializer(new_puddle).data})
 
-	for member in new_puddle.members.all():
-		member.puddles.add(new_puddle)
-
-	return JsonResponse({"ok": True, "puddle": new_puddle.as_json()})
+	return GoodJsonResponse(PuddleSerializer(new_puddle))
 
 @csrf_exempt
 def delete_puddle(request):
-	params = json.loads(request.body.decode("utf-8"))
+	profile = request.META["profile"]
+	puddle_id = request.META["params"]["puddle_id"]
 
 	try:
-		profile = Token.objects.get(token=params["token"]).profile
-	except Token.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "Wrong token"})
-	else:
-		profile.last_activity = timezone.now()
-		profile.save()
-
-	try:
-		puddle = profile.puddles.get(id=params["puddle_id"])
+		puddle = profile.puddles.all().get(id=puddle_id)
 	except Puddle.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "You have not puddle with such id"})
+		return BadJsonResponse("No puddle with such id")
 
-	puddle.not_show_for.add(profile)
+	profile.puddles.remove(puddle)
 
-	return JsonResponse({"ok": True})
+	return GoodJsonResponse()
 
 @csrf_exempt
 def edit_puddle(request):
-	params = json.loads(request.body.decode("utf-8"))
+	profile = request.META["profile"]
+	puddle_id = request.META["params"]["puddle_id"]
+	title = request.META["params"].get("title", None)
+	avatar_id = request.META["params"].get("avatar_id", None)
+
+	if (title is None) and (avatar_id is None):
+		return BadJsonResponse("Method must contain text or/and avarat_id")
 
 	try:
-		profile = Token.objects.get(token=params["token"]).profile
-	except Token.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "Wrong token"})
-	else:
-		profile.last_activity = timezone.now()
-		profile.save()
-
-	try:
-		puddle = profile.puddles.all().get(id=params["puddle_id"])
+		puddle = profile.puddles.all().get(id=puddle_id)
 	except Puddle.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "You have not puddle with such id"})
+		return BadJsonResponse("No puddle with such id")
 
-	display_name = params.get("display_name")
-	avatar_id = params.get("avatar_id")
+	if profile != puddle.creator:
+		return BadJsonResponse("Only puddle's creator can edit puddle")
 
-	if display_name is None:
-		puddle.display_name = ""
-	else:
-		puddle.display_name = display_name
+	if title is not None:
+		puddle.title = title
+		puddle.save()
 
-	try:
-		avatar = File.objects.get(id=avatar_id)
-	except File.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "No file with such id"})
+	if avatar_id is not None:
+		try:
+			avatar = File.objects.get(id=avatar_id)
+		except File.DoesNotExist:
+			return BadJsonResponse("No file with such id")
 
-	puddle.avatar = avatar
+		if avatar.owner != profile:
+			return BadJsonResponse("You can use only self uploaded files by id")
 
-	puddle.save()
+		puddle.avatar = avatar
 
-	return JsonResponse({"ok": True, "puddle": puddle.as_json()})
+	for user in puddle.users.all():
+		puddle_notify(user, "edit", {"puddle": PuddleSerializer(puddle).data})
+
+	return GoodJsonResponse(PuddleSerializer(puddle))
 
 @csrf_exempt
 def add_users_to_puddle(request):
-	params = json.loads(request.body.decode("utf-8"))
+	profile = request.META["profile"]
+	puddle_id = request.META["params"]["puddle_id"]
+	users = request.META["params"]["users"]
 
 	try:
-		profile = Token.objects.get(token=params["token"]).profile
-	except Token.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "Wrong token"})
-	else:
-		profile.last_activity = timezone.now()
-		profile.save()
-
-	try:
-		puddle = profile.puddles.get(id=params["puddle_id"])
+		puddle = profile.puddles.all().get(id=puddle_id)
 	except Puddle.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "You have not puddle with such id"})
+		return BadJsonResponse("No puddle with such id")
 
-	users = profile.friends.filter(user__username__in=params["users"])
+	users_ = profile.friends.all().filter(user__username__in=users)
+	if profile.friends.intersection(users_).filter(user__username__in=users).count() != len(users):
+		return BadJsonResponse("You can't invite non-friend users")
 
-	if profile.mutually_friends.intersection(users).filter(id__in=users).count() != len(params["users"]):
-		return JsonResponse({"ok": False, "error": "You can't invite non-friend users"})
+	puddle.users.add(*users_)
 
-	puddle.members.add(*users)
+	for user in users_:
+		puddle_notify(user, "invite", {"puddle": PuddleSerializer(puddle).data})
 
-	# MEGA SLOW ACTIONS
-	# CAN'T USE UPDATE CAUSE M2M FIELD
-	for message in puddle.messages.all():
-		message.readed_by.add(*users)
-
-	return JsonResponse({"ok": True, "puddle": puddle.as_json()})
+	return GoodJsonResponse(PuddleSerializer(puddle))
 
 @csrf_exempt
 def remove_users_from_puddle(request):
-	params = json.loads(request.body.decode("utf-8"))
+	profile = request.META["profile"]
+	puddle_id = request.META["params"]["puddle_id"]
+	users = request.META["params"]["users"]
 
 	try:
-		profile = Token.objects.get(token=params["token"]).profile
-	except Token.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "Wrong token"})
-	else:
-		profile.last_activity = timezone.now()
-		profile.save()
-
-	try:
-		puddle = profile.puddles.get(id=params["puddle_id"])
+		puddle = profile.puddles.all().get(id=puddle_id)
 	except Puddle.DoesNotExist:
-		return JsonResponse({"ok": False, "error": "You have not puddle with such id"})
+		return BadJsonResponse("No puddle with such id")
 
-	users = profile.friends.filter(user__username__in=params["users"])
+	if profile != puddle.creator:
+		return BadJsonResponse("Only puddle's creator can kick users")
 
-	puddle.members.remove(*users)
+	for user in users:
+		try:
+			puddle.users.all().get(user__username=user)
+		except Profile.DoesNotExist:
+			return BadJsonResponse(f"Profile {user} not in your puddle")
 
-	return JsonResponse({"ok": True, "puddle": puddle.as_json()})
+	for user in puddle.users.all().filter(user__username__in=users):
+		user.puddles.remove(puddle)
+		puddle_notify(user, "kick", {"puddle": PuddleSerializer(puddle).data})
+
+	for user in puddle.users.all():
+		puddle_notify(user, "kick", {"puddle": PuddleSerializer(puddle).data})
+
+	return GoodJsonResponse(PuddleSerializer(puddle))

@@ -2,7 +2,7 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 
-from .api_methods import accounting, files, messages, puddles
+from .api_methods import accounting, puddles, messages, files
 
 app_name = "api"
 
@@ -11,8 +11,11 @@ urlpatterns = [
 	path("generateToken", accounting.generate_token, name="generate_token"), # GET
 	path("getProfile", accounting.get_profile, name="get_profile"), # GET
 	path("setPassword", accounting.set_password, name="set_password"), # POST
-	path("addFriend", accounting.add_friend, name="add_friend"), # POST
-	path("removeFriend", accounting.remove_friend, name="remove_friend"), # POST
+	path("sendFriendRequest", accounting.send_friend_request, name="send_friend_request"), # POST
+	path("acceptFriendRequest", accounting.accept_friend_request, name="accept_friend_request"), # POST
+	path("rejectFriendRequest", accounting.cancel_friend_request, name="cancel_friend_request"), # POST
+	path("cancelFriendRequest", accounting.reject_friend_request, name="reject_friend_request"), # POST
+	path("removeFriends", accounting.remove_friends, name="remove_friends"), # POST
 
 	path("createPuddle", puddles.create_puddle, name="create_puddle"), # POST
 	path("deletePuddle", puddles.delete_puddle, name="delete_puddle"), # POST
@@ -29,5 +32,5 @@ urlpatterns = [
 	path("sendMessage", messages.send_message, name="send_message"), # POST
 	path("editMessage", messages.edit_message, name="edit_message"), # POST
 	path("deleteMessage", messages.delete_message, name="delete_message"), # POST
-	path("getUnreaded", messages.get_unreaded, name="get_unreaded"), # GET
+	# path("getUnreaded", messages.get_unreaded, name="get_unreaded"), # GET
 ]
