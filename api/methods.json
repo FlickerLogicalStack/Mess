@@ -14,6 +14,13 @@
 			"mandatory": ["username", "password"]
 		}
 	},
+	"terminateToken": {
+		"methods": ["POST"],
+		"require_token": true,
+		"POST": {
+			"mandatory": ["token"]
+		}
+	},
 	"createPuddle": {
 		"methods": ["POST"],
 		"require_token": true,
@@ -166,6 +173,14 @@
 		"require_token": true,
 		"POST": {
 			"mandatory": ["token", "users"]
+		}
+	},
+	"editProfile": {
+		"methods": ["POST"],
+		"require_token": true,
+		"POST": {
+			"mandatory": ["token"],
+			"optional": ["avatar_id", "bio", "fullname"]
 		}
 	}
 }

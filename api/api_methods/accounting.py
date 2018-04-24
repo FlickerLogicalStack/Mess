@@ -2,7 +2,7 @@ from django.http import JsonResponse
 
 from . import json, hashlib, os
 from . import csrf_exempt, authenticate, ValidationError, MinimumLengthValidator, CommonPasswordValidator, NumericPasswordValidator, Q, User
-from . import Profile, ProfileSerializer, SelfProfileSerializer, Puddle, PuddleSerializer, Message, MessageSerializer, Token, BadJsonResponse, GoodJsonResponse, redis_server, websocket_socket_notify
+from . import File, Profile, ProfileSerializer, SelfProfileSerializer, Puddle, PuddleSerializer, Message, MessageSerializer, Token, BadJsonResponse, GoodJsonResponse, redis_server, websocket_socket_notify
 
 def profile_notify(profile, type, username):
 	websocket_socket_notify(
@@ -60,6 +60,14 @@ def generate_token(request):
 	return GoodJsonResponse({"token": token_string, "username": profile.user.username})
 
 @csrf_exempt
+def terminate_token(request):
+	profile = request.META["profile"]
+
+	Token.objects.filter(profile=profile).delete()
+
+	return GoodJsonResponse()
+
+@csrf_exempt
 def set_password(request):
 	params = request.META["params"]
 	profile = request.META["profile"]
@@ -95,6 +103,39 @@ def get_profile(request):
 		serializer = ProfileSerializer(profile)
 
 	return GoodJsonResponse(serializer)
+
+@csrf_exempt
+def edit_profile(request):
+	profile = request.META["profile"]
+
+	avatar_id = request.META["params"].get("avatar_id", None)
+	bio = request.META["params"].get("bio", None)
+	fullname = request.META["params"].get("fullname", None)
+
+	if (avatar_id is None) and (bio is None) and (fullname is None):
+		return BadJsonResponse("Method must contain avatar_id or/and bio or/and fullname")
+
+	if avatar_id is not None:
+		try:
+			avatar = File.objects.get(id=avatar_id)
+		except File.DoesNotExist:
+			return BadJsonResponse("No file with such id")
+
+		if avatar.owner != profile:
+			return BadJsonResponse("You can use only self uploaded files by id")
+
+		profile.avatar = avatar
+		
+	if bio is not None:
+		profile.bio = bio
+
+	if fullname is not None:
+		profile.fullname = fullname
+
+	if (bio is not None) or (fullname is not None):
+		profile.save()
+
+	return GoodJsonResponse(SelfProfileSerializer(profile))
 
 @csrf_exempt
 def send_friend_request(request):

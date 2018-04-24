@@ -33,16 +33,20 @@ def get_puddles(request):
 	all_puddles = profile.puddles.all()
 
 	all_puddles = sorted(all_puddles,
-		key=lambda puddle: time.mktime(puddle.last_message.timestamp.timetuple()) if puddle.last_message else puddle.id)
+		key=lambda puddle: time.mktime(puddle.last_message.timestamp.timetuple()) if puddle.last_message else puddle.id, reverse=True)
 
 	if reversed_:
 		all_puddles = list(reversed(all_puddles))
 
 	puddles_count = len(all_puddles)
+
 	if offset > puddles_count:
 		puddles = []
 	else:
-		puddles = all_puddles[offset:(offset+count)-(puddles_count-(offset+count-1))]
+		if offset+count > puddles_count:
+			puddles = all_puddles[offset:]
+		else:
+			puddles = all_puddles[offset:(offset+count)]
 
 	serializer = PuddleSerializer(puddles, many=True)
 

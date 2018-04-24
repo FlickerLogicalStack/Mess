@@ -19,6 +19,7 @@ class FileSerializer(serializers.ModelSerializer):
 			"id",
 			"mime",
 			"link",
+			"file_hash"
 			)
 
 	def get_link(self, obj):
@@ -139,7 +140,7 @@ class ProfileSerializer(serializers.ModelSerializer):
 		return obj.user.username
 
 	def get_last_activity(self, obj):
-		return time.mktime(obj.last_activity.timetuple())
+		return time.mktime(obj.last_activity.timetuple())+25200
 
 class SelfProfileSerializer(ProfileSerializer):
 	friend_requests = serializers.SerializerMethodField()
