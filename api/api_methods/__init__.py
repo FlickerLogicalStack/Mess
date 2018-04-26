@@ -68,3 +68,17 @@ def GoodJsonResponse(data=None, extra=None, extra_per_object=None):
             response["result"][i].update(extra_per_object[i])
 
     return JsonResponse(response)
+
+def puddle_notify(profile, type, data):
+    websocket_socket_notify(
+        redis_server.get(profile.id),
+        "Puddle",
+        type,
+        data)
+
+def profile_notify(profile, type, username):
+    websocket_socket_notify(
+        redis_server.get(profile.id),
+        "Profile",
+        type,
+        {"profile_username": username})

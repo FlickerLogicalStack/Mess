@@ -1,15 +1,6 @@
-from django.http import JsonResponse
-
 from . import json, hashlib, os
 from . import csrf_exempt, authenticate, ValidationError, MinimumLengthValidator, CommonPasswordValidator, NumericPasswordValidator, Q, User
-from . import File, Profile, ProfileSerializer, SelfProfileSerializer, Puddle, PuddleSerializer, Message, MessageSerializer, Token, BadJsonResponse, GoodJsonResponse, redis_server, websocket_socket_notify
-
-def profile_notify(profile, type, username):
-    websocket_socket_notify(
-        redis_server.get(profile.id),
-        "Profile",
-        type,
-        {"profile_username": username})
+from . import File, Profile, ProfileSerializer, SelfProfileSerializer, Puddle, PuddleSerializer, Message, MessageSerializer, Token, BadJsonResponse, GoodJsonResponse, redis_server, websocket_socket_notify, profile_notify
 
 @csrf_exempt
 def register(request):

@@ -1,14 +1,7 @@
 import time
 
 from . import csrf_exempt, redis_server, websocket_socket_notify, Q, authenticate
-from . import File, Profile, Puddle, PuddleSerializer, MessageSerializer, BadJsonResponse, GoodJsonResponse
-
-def puddle_notify(profile, type, data):
-    websocket_socket_notify(
-        redis_server.get(profile.id),
-        "Puddle",
-        type,
-        data)
+from . import File, Profile, Puddle, PuddleSerializer, MessageSerializer, BadJsonResponse, GoodJsonResponse, puddle_notify
 
 def get_puddle(request):
     profile = request.META["profile"]
