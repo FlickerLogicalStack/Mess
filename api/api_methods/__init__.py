@@ -28,43 +28,43 @@ File = apps.get_model("core", "File")
 redis_server = redis.StrictRedis(host="localhost", port=6379, db=0)
 
 def websocket_socket_notify(channel_name, sender, event_type, container):
-	if channel_name is None:
-		return
+    if channel_name is None:
+        return
 
-	if isinstance(channel_name, bytes):
-		channel_name = channel_name.decode("utf-8")
+    if isinstance(channel_name, bytes):
+        channel_name = channel_name.decode("utf-8")
 
-	async_to_sync(get_channel_layer().send)(
-		channel_name, {
-			"type": "event_handler",
-			"sender": sender,
-			"event_type": event_type,
-			"container": container,
-			}
-		)
+    async_to_sync(get_channel_layer().send)(
+        channel_name, {
+            "type": "event_handler",
+            "sender": sender,
+            "event_type": event_type,
+            "container": container,
+            }
+        )
 
 def BadJsonResponse(error_msg):
-	return JsonResponse({"ok": False, "error": error_msg})
+    return JsonResponse({"ok": False, "error": error_msg})
 
 def GoodJsonResponse(data=None, extra=None, extra_per_object=None):
-	response = {"ok": True}
-	if data:
-		if isinstance(data, rest_framework.serializers.BaseSerializer):
-			if isinstance(data, rest_framework.serializers.ListSerializer):
-				response.update({"result": data.data})
-			else:
-				response.update({"result": [data.data]})
-		else:
-			if isinstance(data, (list, tuple, set)):
-				response.update({"result": data})
-			else:
-				response.update({"result": [data]})
+    response = {"ok": True}
+    if data:
+        if isinstance(data, rest_framework.serializers.BaseSerializer):
+            if isinstance(data, rest_framework.serializers.ListSerializer):
+                response.update({"result": data.data})
+            else:
+                response.update({"result": [data.data]})
+        else:
+            if isinstance(data, (list, tuple, set)):
+                response.update({"result": data})
+            else:
+                response.update({"result": [data]})
 
-	if extra is not None:
-		response.update(extra)
+    if extra is not None:
+        response.update(extra)
 
-	if extra_per_object is not None:
-		for i in range(len(response["result"])):
-			response["result"][i].update(extra_per_object[i])
+    if extra_per_object is not None:
+        for i in range(len(response["result"])):
+            response["result"][i].update(extra_per_object[i])
 
-	return JsonResponse(response)
+    return JsonResponse(response)
