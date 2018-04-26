@@ -1,0 +1,193 @@
+{
+    "register": {
+        "methods": ["POST"],
+        "require_token": false,
+        "POST": {
+            "mandatory": ["email", "username", "password"],
+            "optional": ["avatar_id", "title"]
+        }
+    },
+    "generateToken": {
+        "methods": ["POST"],
+        "require_token": false,
+        "POST": {
+            "mandatory": ["username", "password"]
+        }
+    },
+    "terminateToken": {
+        "methods": ["POST"],
+        "require_token": true,
+        "POST": {
+            "mandatory": ["token"]
+        }
+    },
+    "createPuddle": {
+        "methods": ["POST"],
+        "require_token": true,
+        "POST": {
+            "mandatory": ["token", "users"],
+            "optional": ["title", "avatar_id", "is_channel"]
+        }
+    },
+    "deletePuddle": {
+        "methods": ["POST"],
+        "require_token": true,
+        "POST": {
+            "mandatory": ["token", "puddle_id"],
+            "optional": ["reason"]
+        }
+    },
+    "editPuddle": {
+        "methods": ["POST"],
+        "require_token": true,
+        "POST": {
+            "mandatory": ["token", "puddle_id"],
+            "optional": ["title", "avatar_id"]
+        }
+    },
+    "addUsersToPuddle": {
+        "methods": ["POST"],
+        "require_token": true,
+        "POST": {
+            "mandatory": ["token", "puddle_id", "users"]
+        }
+    },
+    "removeUsersFromPuddle": {
+        "methods": ["POST"],
+        "require_token": true,
+        "POST": {
+            "mandatory": ["token", "puddle_id", "users"]
+        }
+    },
+    "getPuddle": {
+        "methods": ["GET"],
+        "require_token": true,
+        "GET": {
+            "mandatory": ["token", "puddle_id"]
+        }
+    },
+    "getPuddles": {
+        "methods": ["GET"],
+        "require_token": true,
+        "GET": {
+            "mandatory": ["token"],
+            "optional": ["count", "offset", "reversed"]
+        }
+    },
+    "getPuddleMessages": {
+        "methods": ["GET"],
+        "require_token": true,
+        "GET": {
+            "mandatory": ["token", "puddle_id"],
+            "optional": ["count", "offset", "reversed"]
+        }
+    },
+    "sendMessage": {
+        "methods": ["POST"],
+        "require_token": true,
+        "POST": {
+            "mandatory": ["token", "puddle_id"],
+            "optional": ["forwarded", "files", "text"]
+        }
+    },
+    "editMessage": {
+        "methods": ["POST"],
+        "require_token": true,
+        "POST": {
+            "mandatory": ["token", "puddle_id", "message_id", "text"]
+        }
+    },
+    "deleteMessage": {
+        "methods": ["POST"],
+        "require_token": true,
+        "POST": {
+            "mandatory": ["token", "puddle_id", "message_id"],
+            "optional": ["reason"]
+        }
+    },
+    "getUnreaded": {
+        "methods": ["GET"],
+        "require_token": true,
+        "GET": {
+            "mandatory": ["token"]
+        }
+    },
+    "getProfile": {
+        "methods": ["GET"],
+        "require_token": true,
+        "GET": {
+            "mandatory": ["token", "username"]
+        }
+    },
+    "setPassword": {
+        "methods": ["POST"],
+        "require_token": true,
+        "POST": {
+            "mandatory": ["token", "old_password", "password"]
+        }
+    },
+    "uploadFile": {
+        "methods": ["POST"],
+        "require_token": true,
+        "POST": {
+            "mandatory": ["token", "file"]
+        }
+    },
+    "downloadFile": {
+        "methods": ["GET"],
+        "require_token": true,
+        "GET": {
+            "mandatory": ["token", "file_id"]
+        }
+    },
+    "sendFriendRequest": {
+        "methods": ["POST"],
+        "require_token": true,
+        "POST": {
+            "mandatory": ["token", "username"]
+        }
+    },
+    "acceptFriendRequest": {
+        "methods": ["POST"],
+        "require_token": true,
+        "POST": {
+            "mandatory": ["token", "username"]
+        }
+    },
+    "rejectFriendRequest": {
+        "methods": ["POST"],
+        "require_token": true,
+        "POST": {
+            "mandatory": ["token", "username"]
+        }
+    },
+    "cancelFriendRequest": {
+        "methods": ["POST"],
+        "require_token": true,
+        "POST": {
+            "mandatory": ["token", "username"]
+        }
+    },
+    "removeFriends": {
+        "methods": ["POST"],
+        "require_token": true,
+        "POST": {
+            "mandatory": ["token", "users"]
+        }
+    },
+    "editProfile": {
+        "methods": ["POST"],
+        "require_token": true,
+        "POST": {
+            "mandatory": ["token"],
+            "optional": ["avatar_id", "bio", "fullname"]
+        }
+    },
+    "transferPuddleRights": {
+        "methods": ["POST"],
+        "require_token": true,
+        "POST": {
+            "mandatory": ["token", "puddle_id", "owner_username", "password", "new_owner_username"]
+        }
+    }
+}

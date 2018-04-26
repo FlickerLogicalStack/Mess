@@ -11,9 +11,9 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'channels',
-    'core',
-    'api',
-    'web',
+    'apps.core',
+    'apps.api',
+    'apps.web',
     'rest_framework',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -31,7 +31,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'api.middleware.ApiRequestValidatorMiddleware',
+    'apps.api.middleware.ApiRequestValidatorMiddleware',
 ]
 
 ROOT_URLCONF = 'Mess.urls'
