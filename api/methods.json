@@ -26,7 +26,7 @@
         "require_token": true,
         "POST": {
             "mandatory": ["token", "users"],
-            "optional": ["title", "avatar_id"]
+            "optional": ["title", "avatar_id", "is_channel"]
         }
     },
     "deletePuddle": {
@@ -181,6 +181,13 @@
         "POST": {
             "mandatory": ["token"],
             "optional": ["avatar_id", "bio", "fullname"]
+        }
+    },
+    "transferPuddleRights": {
+        "methods": ["POST"],
+        "require_token": true,
+        "POST": {
+            "mandatory": ["token", "puddle_id", "owner_username", "password", "new_owner_username"]
         }
     }
 }

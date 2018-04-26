@@ -1,6 +1,6 @@
 import time
 
-from . import csrf_exempt, redis_server, websocket_socket_notify
+from . import csrf_exempt, redis_server, websocket_socket_notify, Q, authenticate
 from . import File, Profile, Puddle, PuddleSerializer, MessageSerializer, BadJsonResponse, GoodJsonResponse
 
 def puddle_notify(profile, type, data):
@@ -82,6 +82,7 @@ def create_puddle(request):
     users = request.META["params"]["users"]
     title = request.META["params"].get("title", None)
     avatar_id = request.META["params"].get("avatar_id", None)
+    is_channel = request.META["params"].get("is_channel", False)
 
     if not len([i for i in users if i != profile.user.username]):
         return BadJsonResponse("Puddle must have at least 1 other user")
@@ -92,7 +93,8 @@ def create_puddle(request):
 
     new_puddle = Puddle.objects.create(
         creator=profile,
-        title=title or "")
+        title=title or "",
+        is_channel=is_channel)
 
     new_puddle.users.set(profile.friends.filter(user__username__in=users))
     new_puddle.users.add(profile)
@@ -210,5 +212,37 @@ def remove_users_from_puddle(request):
 
     for user in puddle.users.all():
         puddle_notify(user, "kick", {"puddle": PuddleSerializer(puddle).data})
+
+    return GoodJsonResponse(PuddleSerializer(puddle))
+
+@csrf_exempt
+def transfer_puddle_rights(request):
+    profile = request.META["profile"]
+    puddle_id = request.META["params"]["puddle_id"]
+    owner_username = request.META["params"]["owner_username"]
+    password = request.META["params"]["password"]
+    new_owner_username = request.META["params"]["new_owner_username"]
+
+    try:
+        puddle = profile.puddles.all().get(id=puddle_id)
+    except Puddle.DoesNotExist:
+        return BadJsonResponse("No puddle with such id")
+
+    try:
+        new_owner = Profile.objects.get(user__username=new_owner_username)
+    except Profile.DoesNotExist:
+        return BadJsonResponse("No profile with such username")
+
+    authenticated_user = authenticate(request,
+        username=owner_username, password=password)
+
+    if not authenticated_user:
+        return BadJsonResponse("Wrong username/password data")
+
+    if puddle.creator != profile:
+        return BadJsonResponse("Only puddle's owner can trasfer their puddle rights")
+
+    puddle.creator = new_owner
+    puddle.save()
 
     return GoodJsonResponse(PuddleSerializer(puddle))

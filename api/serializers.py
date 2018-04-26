@@ -88,6 +88,7 @@ class PuddleSerializer(serializers.ModelSerializer):
             "title",
             "avatar",
             "last_message",
+            "is_channel"
             )
 
     def get_creator(self, obj):

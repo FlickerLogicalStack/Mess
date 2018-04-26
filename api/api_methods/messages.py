@@ -19,6 +19,9 @@ def send_message(request):
     except Puddle.DoesNotExist:
         return BadJsonResponse("You haven't puddle with such id")
 
+    if (puddle.is_channel) and (profile != puddle.creator):
+        return BadJsonResponse("Only creator can send messages in channel")
+
     message = Message.objects.create(
         sender=profile,
         target_puddle=puddle,

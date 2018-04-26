@@ -27,6 +27,7 @@ urlpatterns = [
     path("getPuddle", puddles.get_puddle, name="get_puddle"),
     path("getPuddles", puddles.get_puddles, name="get_puddles"),
     path("getPuddleMessages", puddles.get_puddle_messages, name="get_puddle_messages"),
+    path("transferPuddleRights", puddles.transfer_puddle_rights, name="transfer_puddle_rights"),
 
     path("uploadFile", files.upload_file, name="upload_file"),
     path("downloadFile", files.download_file, name="download_file"),
@@ -34,5 +35,4 @@ urlpatterns = [
     path("sendMessage", messages.send_message, name="send_message"),
     path("editMessage", messages.edit_message, name="edit_message"),
     path("deleteMessage", messages.delete_message, name="delete_message"),
-    # path("getUnreaded", messages.get_unreaded, name="get_unreaded"), 
 ]

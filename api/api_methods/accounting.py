@@ -25,7 +25,7 @@ def register(request):
         CommonPasswordValidator(),
         NumericPasswordValidator()]:
         try:
-            validator.validate(params["password"])
+            validator.validate(password)
         except ValidationError as e:
             return BadJsonResponse(e.messages[0])
 
@@ -37,10 +37,11 @@ def register(request):
 
 @csrf_exempt
 def generate_token(request):
-    params = request.META["params"]
+    username = request.META["params"]["username"]
+    password = request.META["params"]["password"]
     
     authenticated_user = authenticate(request,
-        username=params["username"], password=params["password"])
+        username=username, password=password)
 
     if not authenticated_user:
         return BadJsonResponse("Wrong username/password data")
@@ -69,10 +70,10 @@ def terminate_token(request):
 
 @csrf_exempt
 def set_password(request):
-    params = request.META["params"]
     profile = request.META["profile"]
+    password = request.META["params"]["password"]
 
-    if not profile.user.check_password(params["old_password"]):
+    if not profile.user.check_password(password):
         return BadJsonResponse("Wrong old password")
 
     for validator in [
@@ -80,11 +81,11 @@ def set_password(request):
         CommonPasswordValidator(),
         NumericPasswordValidator()]:
         try:
-            validator.validate(params["password"])
+            validator.validate(password)
         except ValidationError as e:
             return BadJsonResponse(e.messages[0])
 
-    profile.user.set_password(params["password"])
+    profile.user.set_password(password)
     profile.user.save()
 
     return GoodJsonResponse()
