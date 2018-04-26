@@ -2,6 +2,7 @@ from . import json
 from . import csrf_exempt, timezone, redis_server, websocket_socket_notify
 from . import Profile, ProfileSerializer, Puddle, PuddleSerializer, Message, File, MessageSerializer, BadJsonResponse, GoodJsonResponse
 
+
 @csrf_exempt
 def send_message(request):
     profile = request.META["profile"]
@@ -26,7 +27,7 @@ def send_message(request):
         sender=profile,
         target_puddle=puddle,
         text=text,
-        )
+    )
 
     message.readed_by = f"{profile.id} "
     message.save()
@@ -56,6 +57,7 @@ def send_message(request):
 
     return GoodJsonResponse(MessageSerializer(message))
 
+
 @csrf_exempt
 def edit_message(request):
     profile = request.META["profile"]
@@ -79,7 +81,7 @@ def edit_message(request):
 
     if (timezone.now() - message.timestamp).days:
         return BadJsonResponse("Too late for editing")
-    
+
     message.text = text
     message.edited = True
 
@@ -94,10 +96,10 @@ def edit_message(request):
 
     return GoodJsonResponse(MessageSerializer(message))
 
+
 @csrf_exempt
 def delete_message(request):
     profile = request.META["profile"]
-
     puddle_id = request.META["params"]["puddle_id"]
     message_id = request.META["params"]["message_id"]
 

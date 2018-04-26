@@ -27,6 +27,7 @@ File = apps.get_model("core", "File")
 
 redis_server = redis.StrictRedis(host="localhost", port=6379, db=0)
 
+
 def websocket_socket_notify(channel_name, sender, event_type, container):
     if channel_name is None:
         return
@@ -40,11 +41,13 @@ def websocket_socket_notify(channel_name, sender, event_type, container):
             "sender": sender,
             "event_type": event_type,
             "container": container,
-            }
-        )
+        }
+    )
+
 
 def BadJsonResponse(error_msg):
     return JsonResponse({"ok": False, "error": error_msg})
+
 
 def GoodJsonResponse(data=None, extra=None, extra_per_object=None):
     response = {"ok": True}
@@ -69,12 +72,14 @@ def GoodJsonResponse(data=None, extra=None, extra_per_object=None):
 
     return JsonResponse(response)
 
+
 def puddle_notify(profile, type, data):
     websocket_socket_notify(
         redis_server.get(profile.id),
         "Puddle",
         type,
         data)
+
 
 def profile_notify(profile, type, username):
     websocket_socket_notify(
