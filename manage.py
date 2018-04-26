@@ -3,7 +3,15 @@ import os
 import sys
 
 if __name__ == "__main__":
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Mess.settings")
+    try:
+        from Mess.local_settings import *
+    except ImportError:
+        settings_module = "Mess.settings"
+    else:
+        settings_module = "Mess.local_settings"
+        
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", settings_module)
+
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
