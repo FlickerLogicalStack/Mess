@@ -97,6 +97,8 @@ def create_puddle(request):
 	new_puddle.users.set(profile.friends.filter(user__username__in=users))
 	new_puddle.users.add(profile)
 
+	profile.puddles.add(new_puddle)
+
 	if avatar_id is not None:
 		try:
 			new_puddle.avatar = File.objects.get(id=avatar_id)

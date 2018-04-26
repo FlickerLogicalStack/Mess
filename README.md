@@ -44,5 +44,7 @@ DATABASES = {
 }
 ```
 
+###### I will fix this document/undocument hell
+
 * Create db `mess_db` by superuser (I heard that it is bad practice, will be fixed later)
 * Then it must work
