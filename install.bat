@@ -1,6 +1,7 @@
 python -m venv env
 "env\Scripts\pip" install pypiwin32
 "env\Scripts\python" "env\Scripts\pywin32_postinstall.py" -install
+"env\Scripts\easy_install" django==2.0.3
 "env\Scripts\easy_install" djangorestframework
 "env\Scripts\easy_install" markdown
 "env\Scripts\easy_install" django-filter
