@@ -1,7 +1,7 @@
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
 
-from apps.core.models import Profile, Message
+from apps.core.models import Profile, Puddle, Message
 from apps.api.models import Token
 
 import json
@@ -25,21 +25,27 @@ class MainConsumer(WebsocketConsumer):
             self.send(text_data='{"ok": false, "error": "JSONDecodeError"}')
             return
 
+        # I WILL REWRITE IT
         if data.get("type"):
             if data["type"] == "messageRead":
-                if data.get("message_id"):
+                if data.get("message_id") and data.get("puddle_id"):
                     try:
-                        message = Message.objects.get(id=data["message_id"])
-                    except Message.DoesNotExist:
+                        puddle = Puddle.obejcts.get(id=data["puddle_id"])
+                    except Puddle.DoesNotExist:
                         self.send(text_data='{"ok": false}')
                     else:
                         try:
-                            profile = Token.objects.get(token=self.scope["url_route"]["kwargs"]["token"]).profile
-                        except Token.DoesNotExist:
+                            message = puddle.messages.all().get(id=data["message_id"])
+                        except Message.DoesNotExist:
                             self.send(text_data='{"ok": false}')
                         else:
-                            message.readed_by.add(profile)
-                            self.send(text_data='{"ok": true}')
+                            try:
+                                profile = Token.objects.get(token=self.scope["url_route"]["kwargs"]["token"]).profile
+                            except Token.DoesNotExist:
+                                self.send(text_data='{"ok": false}')
+                            else:
+                                message.readed_by += f"{profile.id} "
+                                self.send(text_data='{"ok": true}')
 
             elif data["type"] == "auth" and not self.is_auth:
                 if data.get("token"):
