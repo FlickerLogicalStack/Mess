@@ -147,7 +147,7 @@ def send_friend_request(request):
     except Profile.DoesNotExist:
         return BadJsonResponse("No profile with such username")
 
-    if another_profile in profile.friends:
+    if another_profile in profile.friends.all():
         return BadJsonResponse("This profile already in your friend list")
 
     another_profile.friend_requests.add(profile)

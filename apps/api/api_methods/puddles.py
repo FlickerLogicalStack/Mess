@@ -81,7 +81,7 @@ def create_puddle(request):
         return BadJsonResponse("Puddle must have at least 1 other user")
 
     users_ = profile.friends.filter(user__username__in=users)
-    if profile.friends.intersection(users_).filter(user__username__in=users).count() != len(users):
+    if profile.friends.all().intersection(users_).filter(user__username__in=users).count() != len(users):
         return BadJsonResponse("You can't invite non-friend users")
 
     new_puddle = Puddle.objects.create(
@@ -169,7 +169,7 @@ def add_users_to_puddle(request):
         return BadJsonResponse("No puddle with such id")
 
     users_ = profile.friends.all().filter(user__username__in=users)
-    if profile.friends.intersection(users_).filter(user__username__in=users).count() != len(users):
+    if profile.friends.all().intersection(users_).filter(user__username__in=users).count() != len(users):
         return BadJsonResponse("You can't invite non-friend users")
 
     puddle.users.add(*users_)
