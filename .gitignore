@@ -100,7 +100,11 @@ ENV/
 # mypy
 .mypy_cache/
 
+
 run_server.bat
 migrate.bat
 *.sqlite3
 cmd.exe.lnk
+
+# sublime text
+sublime_project
