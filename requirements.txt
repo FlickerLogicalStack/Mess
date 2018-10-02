@@ -20,9 +20,7 @@ incremental==17.5.0
 markdown==2.6.11
 msgpack==0.5.6
 psycopg2==2.7.4
-pypiwin32==223
 pytz==2018.3
-pywin32==223
 redis==2.10.6
 six==1.11.0
 twisted==18.4.0rc1

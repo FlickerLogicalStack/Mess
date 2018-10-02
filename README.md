@@ -15,7 +15,7 @@ Django Web Messenger
 * #### Now you can run it!
 
 ### Linux
-* Will be as soon as possible)
+* Same as on Windows but instead of `.bat` files use `make install` and `make setup`
 
 ## Configurations
 You can switch db on postgre (it works more faster):  
